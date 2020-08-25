@@ -1,0 +1,40 @@
+#This script performs the same function as ADCopy however this targets a list of 
+# users rather than just the one individual. There can be more done to this. I am 
+# working on a fully gui suite of administrative tasks when I can. Ideally now that 
+# I am able to target this list of users I can perform more fine manipulations.
+
+$A = Read-Host "Who's the Old User?"
+
+$B = ForEach ($employeeid in $(Get-Content "C:\users\m-toss\users.csv")) 
+    {   
+        $adgroups = Get-ADPrincipalGroupMembership -Identity "$employeeid" 
+		ForEach($singlegroup in $adgroups)
+		{
+			if ($singlegroup.SamAccountName -notlike "*Domain Users*")
+			{
+		    	Remove-ADPrincipalGroupMembership -Identity "$employeeid" -MemberOf $singlegroup.SamAccountName -confirm:$false
+			}
+		} 
+        $CopyFromUser = Get-ADUser "$A" -Property 'MemberOf' 
+        $CopyToUser = Get-ADUser "$employeeid" -Property  'MemberOf'
+        $CopyFromUser.MemberOf | 
+            Where-Object {$CopyToUser.MemberOf -notcontains $_} |  
+            Add-ADGroupMember -Members $CopyToUser
+
+        #Copies Location of $A in AD and moves $B there
+        $Location = get-aduser "$A" -property 'distinguishedname' | 
+            Select-Object -ExpandProperty 'Distinguishedname' |  
+            foreach-object {$_ -replace '^.+?(?<!\\),',''}
+        $Move = Get-ADUser "$employeeid" | Move-ADObject -TargetPath "$Location"
+        $Move
+
+        #Copies Description & Office of $A and applies to $B
+        $Type = Get-ADUser "$A" -Properties 'description' | 
+            Select-Object -ExpandProperty 'description'
+        $Change = Get-ADUser "$employeeid" -Properties 'description' | 
+            Set-Aduser  -Description "$Type" -Enabled $True
+        $Site = Get-ADUser "$A" -Properties 'Office' | Select-Object -ExpandProperty 'Office'
+        $Switch = Get-ADUser "$employeeid" -Properties 'Office' | Set-Aduser -Office "$Site"
+        $Change
+        $Switch
+    }

@@ -1,0 +1,123 @@
+﻿#UnResPas
+#This utility should allow rapid password resets and account unlocks on the domain
+
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
+$form = New-Object System.Windows.Forms.Form
+$form.Text = 'UnResPas'
+$form.Size = New-Object System.Drawing.Size(260,220)
+$form.StartPosition = 'CenterScreen'
+
+
+$label = New-Object System.Windows.Forms.Label
+$label.Location = New-Object System.Drawing.Point(10,20)
+$label.Size = New-Object System.Drawing.Size(215,20)
+$label.Text = 'Account ID:'
+$form.Controls.Add($label)
+
+#Input Employee Identification
+$textBox = New-Object System.Windows.Forms.TextBox
+$textBox.Location = New-Object System.Drawing.Point(10,40)
+$textBox.Size = New-Object System.Drawing.Size(215,20)
+$form.Controls.Add($textBox)
+
+#Check for Password Reset    
+$checkBoxPSR = New-Object System.Windows.Forms.CheckBox
+$checkBoxPSR.Location = New-Object System.Drawing.Point(10,60)
+$checkBoxPSR.Size = New-Object System.Drawing.Size(260,20)
+$checkBoxPSR.Text = 'Confirm Password reset for user' 
+$checkBoxPSR.TabIndex = 1
+$form.Controls.Add($checkBoxPSR)
+
+#Check for Unlock Account
+$checkBoxUA = New-Object System.Windows.Forms.CheckBox
+$checkBoxUA.Location =New-Object System.Drawing.Point(10,80)
+$checkBoxUA.Size = New-Object System.Drawing.Size(260,20)
+$checkBoxUA.Text = 'Confirm Account Unlock for user'
+$checkBoxUA.TabIndex = 2
+$form.Controls.Add($checkBoxUA)
+
+#List for domain of employee
+$listBox = New-Object System.Windows.Forms.Listbox
+$listBox.Location = New-Object System.Drawing.Point(10,100)
+$listBox.Size = New-Object System.Drawing.Size(215,20)
+
+$listBox.SelectionMode = 'MultiExtended'
+
+#Replace these options with your domain
+[void] $listBox.Items.Add('domain.local')
+[void] $listBox.Items.Add('domain.external')
+
+$listBox.Height = 40
+$form.controls.Add($listBox)
+
+$OKButton = New-Object System.Windows.Forms.Button
+$OKButton.Location = New-Object System.Drawing.Point(30,140)
+$OKButton.Size = New-Object System.Drawing.Size(75,23)
+$OKButton.Text = 'OK'
+$OKButton.DialogResult = [System.Windows.Forms.DialogResult]::OK
+$form.AcceptButton = $OKButton
+$form.Controls.Add($OKButton)
+
+$CancelButton = New-Object System.Windows.Forms.Button
+$CancelButton.Location = New-Object System.Drawing.Point(130,140)
+$CancelButton.Size = New-Object System.Drawing.Size(75,23)
+$CancelButton.Text = 'Cancel'
+$CancelButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+$form.CancelButton = $CancelButton
+$form.Controls.Add($CancelButton)
+
+$form.Topmost = $true
+
+$form.Add_Shown({$textBox.Select()})
+$result = $form.ShowDialog()
+
+#need to add input limitations ie six digit ID
+#need to check for enabled account or disabled
+
+#Resets password of Employee Identification provided for selected domain
+if ( [System.Windows.Forms.DialogResult]::OK -and $checkBoxPSR.Checked -eq $true -and $listBox.SelectedItem -eq 'domain.local')
+    {
+        Set-ADAccountPassword -Identity $textBox.Text -Reset -NewPassword (ConvertTo-SecureString -AsPlainText 'Password01!' -Force) -PassThru | Set-ADUser -ChangePasswordAtLogon $true
+    }
+
+if ([System.Windows.Forms.DialogResult]::OK -and $checkBoxPSR.Checked -eq $true -and $listBox.SelectedItem -eq 'domain.external')
+    {
+        Set-ADAccountPassword -Identity $textBox.Text -Reset -NewPassword (ConvertTo-SecureString -AsPlainText 'Sup3rPa#' -Force) -PassThru | Set-ADUser -ChangePasswordAtLogon $true
+    }
+
+#Unlocks account of Employee on selected domain
+if ([System.Windows.Forms.DialogResult]::OK -and $checkBoxUA.Checked -eq $true -and $listBox.SelectedItem -eq 'domain.local')
+    {
+        Unlock-ADAccount -Identity $textBox.Text -Server domain.local 
+    }
+
+if ([System.Windows.Forms.DialogResult]::OK -and $checkBoxUA.Checked -eq $true -and $listBox.SelectedItem -eq 'domain.external')
+    {
+        Unlock-ADAccount -Identity $textBox.Text -Server domain.external 
+    }
+#
+#
+#
+#
+#
+#
+
+#Exit conditions
+if ($checkBoxPSR.Checked -and $checkBoxUA.Checked -eq $false)
+    {
+    Exit
+    }
+
+if ($listBox.SelectedItem -eq $false)
+    {
+    Write-Host "select domain next time"
+    Exit
+    }
+   
+if ($result -eq [System.Windows.Forms.DialogResult]::Cancel)
+    {
+    Write-Host "make up your mind"
+    Exit
+    }  

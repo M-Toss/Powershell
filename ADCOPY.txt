@@ -1,0 +1,30 @@
+#Copies group membership of target user to apply to new user, 
+$A = Read-Host "Who's the Old User?"
+$B = Read-Host "Who's the New User?"
+#Removes $B from all AD Groups
+$adgroups = Get-ADPrincipalGroupMembership -Identity "$B"
+	ForEach($singlegroup in $adgroups)
+	{
+		if ($singlegroup.SamAccountName -notlike "*Domain Users*")
+		{
+		    Remove-ADPrincipalGroupMembership -Identity "$B" -MemberOf $singlegroup.SamAccountName -confirm:$false
+		}
+	}			
+
+#Copies AD Membership from $A to $B
+$CopyFromUser = Get-ADUser "$A" -Property 'MemberOf' 
+$CopyToUser = Get-ADUser "$B" -Property  'MemberOf'
+$CopyFromUser.MemberOf | Where-Object {$CopyToUser.MemberOf -notcontains $_} |  Add-ADGroupMember -Members $CopyToUser
+
+#Copies Location of $A in AD and moves $B there
+$Location = get-aduser "$A" -property 'distinguishedname' | Select-Object -ExpandProperty 'Distinguishedname' |  foreach-object {$_ -replace '^.+?(?<!\\),',''}
+$Move = Get-ADUser "$B" | Move-ADObject -TargetPath "$Location"
+$Move
+
+#Copies Description & Office of $A and applies to $B
+$Type = Get-ADUser "$A" -Properties 'description' | Select-Object -ExpandProperty 'description'
+$Change = Get-ADUser "$B" -Properties 'description' | Set-Aduser  -Description "$Type" -Enabled $True
+$Site = Get-ADUser "$A" -Properties 'Office' | Select-Object -ExpandProperty 'Office'
+$Switch = Get-ADUser "$B" -Properties 'Office' | Set-Aduser -Office "$Site"
+$Change
+$Switch
