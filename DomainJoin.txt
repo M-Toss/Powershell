@@ -1,6 +1,0 @@
-#this script is stored in shell:startup so that the technician only has to copy the contents and run in powershell. 
-#this is a cludge due to some limitations with technician access at the time and the need to complete the 
-#migration to windows 10. 
-#It has been included for continuity. 
-Start-Process "powershell" -Wait -Verb 'RunAs' -ArgumentList 'C:\users\aguser\desktop\Domainer4.ps1'
-Remove-Item -Path "C:\Users\aguser\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\DomainJoin.ps1"
