@@ -1,0 +1,11 @@
+#Returns != group membership values of two users
+$A = Read-Host 'First User'
+$B = Read-Host 'Second User'
+write-host "$A has this while $B does not"
+$CopyFromUser = Get-ADUser "$A" -Property 'MemberOf' 
+$CopyToUser = Get-ADUser "$B" -Property  'MemberOf'
+$CopyFromUser.MemberOf | 
+    Where-Object {$CopyToUser.MemberOf -notcontains $_} | Out-Default
+Write-Host "$B has this while $A does not"
+$CopyToUser.MemberOf |
+    Where-Object {$CopyFromUser.MemberOf -notcontains $_} | Out-Default
